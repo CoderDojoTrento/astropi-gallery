@@ -8,6 +8,8 @@ Records Astropi Mission Zero Python scripts as MP4 videos completely offline wit
 
 ... and yes, it was vibe coded - thanks Claude!
 
+See [Demo](http://coderdojotrento.github.io/astropi-gallery/demo)
+
 ## How it works
 
 A **mock `sense_hat` package** intercepts all LED matrix calls (`set_pixels`,
