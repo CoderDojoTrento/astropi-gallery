@@ -1,8 +1,8 @@
-# SenseHat Video Recorder 
+# Astropi Gallery Recorder 
 
-Records SenseHat Mission Zero Python scripts as MP4 videos completely offline with a custom emulator and collects them into an HTML gallery.
+Records Astropi Mission Zero Python scripts as MP4 videos completely offline with a custom SenseHat emulator, and collects them into an HTML gallery.
 
-- Almost zero dependencies: no `sense_emu` package, no GTK dependency is needed, no browser, no web emulator, and no Sense HAT hardware needed!
+- Only requires Pillow and ffmpeg dependencies, no `sense_emu` package, no GTK dependency, no browser, no web emulator, and no Sense HAT hardware needed!
 - Fast: uses a virtual clock for timing
 - Also checks astropi mission zero requirements are satisfied
 
