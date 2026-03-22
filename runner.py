@@ -175,13 +175,29 @@ def main():
     parser.add_argument("--fps", type=int, default=30,
                         help="Video framerate (default: 30)")
     parser.add_argument("--preview", action="store_true",
-                        help="Also save a PNG of the last frame")
+                        help="Also save a PNG of the first significant frame")
     parser.add_argument("--check", action="store_true",
                         help="Report Mission Zero criteria pass/fail")
+    parser.add_argument("--gallery", action="store_true",
+                        help="Generate an HTML gallery page (implies --preview --check)")
+    parser.add_argument("--gallery-title", default="Mission Zero Gallery",
+                        help="Gallery page title")
+    parser.add_argument("--gallery-subtitle",
+                        default="Our code ran on the International Space Station!",
+                        help="Gallery page subtitle")
+    parser.add_argument("--instructor", default=None,
+                        help="Instructor / school / club name for the gallery")
+    parser.add_argument("--instructor-logo", default=None,
+                        help="Path to instructor logo image for the gallery")
     parser.add_argument("-v", "--verbose", action="store_true",
                         help="Verbose output")
 
     args = parser.parse_args()
+
+    # --gallery implies --preview and --check
+    if args.gallery:
+        args.preview = True
+        args.check = True
 
     scripts_dir = Path(args.scripts_dir)
     if not scripts_dir.is_dir():
@@ -205,6 +221,7 @@ def main():
     print()
 
     results_summary = []
+    gallery_entries = []
 
     for i, script_path in enumerate(scripts, 1):
         name = script_path.stem
@@ -219,6 +236,7 @@ def main():
         n_frames = len(result["frames"])
         ve = result["virtual_elapsed"]
 
+        video_ok = False
         if result["error"]:
             print(f"✗ error")
             if args.verbose:
@@ -229,9 +247,9 @@ def main():
             print(f"⚠ no frames recorded")
         else:
             video_path = str(output_dir / f"{name}.mp4")
-            ok = frames_to_video(result["frames"], video_path, fps=args.fps)
+            video_ok = frames_to_video(result["frames"], video_path, fps=args.fps)
 
-            if ok:
+            if video_ok:
                 print(f"✓ {n_frames} frames, {ve:.1f}s animation "
                       f"(rendered in {wall:.1f}s) → {video_path}")
             else:
@@ -239,8 +257,6 @@ def main():
 
             if args.preview and n_frames > 0:
                 preview_path = str(output_dir / f"{name}.png")
-                # Pick the first frame that is "held" for a visible duration
-                # (skips rapid scroll frames, picks artwork/static images)
                 best_frame = result["frames"][0][1]
                 for fi in range(n_frames):
                     t_now = result["frames"][fi][0]
@@ -257,9 +273,11 @@ def main():
                 if args.verbose:
                     print(f"         Preview: {preview_path}")
 
+        criteria_pass = None
         if args.check:
             criteria = check_criteria(result)
             all_pass = all(v[0] for v in criteria.values())
+            criteria_pass = all_pass
             status = "✅ PASS" if all_pass else "❌ FAIL"
             print(f"         Criteria: {status}")
             for crit_name, (passed, detail) in criteria.items():
@@ -272,11 +290,44 @@ def main():
                 "pass": all_pass,
             })
 
+        # Collect gallery entry if video was produced
+        if video_ok and args.gallery:
+            # Parse filename: "participant-project.py" → participant, project
+            # If only one part, use it as both
+            parts = name.replace("_", " ").split("-", 1)
+            participant = parts[0].strip().title() if len(parts) > 1 else ""
+            project = parts[-1].strip().title()
+
+            gallery_entries.append({
+                "name": project,
+                "participant": participant,
+                "project": project,
+                "video": f"{name}.mp4",
+                "preview": f"{name}.png",
+                "preview_path": str(output_dir / f"{name}.png"),
+                "duration": ve,
+                "criteria_pass": criteria_pass,
+            })
+
     if args.check and results_summary:
         print()
         passed = sum(1 for r in results_summary if r["pass"])
         total = len(results_summary)
         print(f"Summary: {passed}/{total} scripts pass all Mission Zero criteria")
+
+    # Generate gallery page
+    if args.gallery and gallery_entries:
+        from gallery import generate_gallery
+        gallery_path = str(output_dir / "index.html")
+        generate_gallery(
+            gallery_entries,
+            gallery_path,
+            title=args.gallery_title,
+            subtitle=args.gallery_subtitle,
+            instructor_name=args.instructor,
+            instructor_logo_path=args.instructor_logo,
+        )
+        print(f"\n🌟 Gallery: {gallery_path} ({len(gallery_entries)} projects)")
 
 
 if __name__ == "__main__":
