@@ -2,13 +2,14 @@
 
 Records Astropi Mission Zero Python scripts as MP4 videos completely offline with a custom SenseHat emulator, and collects them into an HTML gallery.
 
+See [Demo](http://coderdojotrento.github.io/astropi-gallery/demo)
+
 - Only requires Pillow and ffmpeg dependencies, no `sense_emu` package, no GTK dependency, no browser, no web emulator, and no Sense HAT hardware needed!
 - Fast: uses a virtual clock for timing
 - Also checks astropi mission zero requirements are satisfied
 
 ... and yes, it was vibe coded - thanks Claude!
 
-See [Demo](http://coderdojotrento.github.io/astropi-gallery/demo)
 
 ## How it works
 
