@@ -6,21 +6,52 @@ Mission Zero animation videos with preview thumbnails.
 import html
 import os
 import base64
+import shutil
 from pathlib import Path
 
 
-def _inline_image_src(png_path):
-    """Return a data URI for a small PNG, or a relative path for larger ones."""
-    size = os.path.getsize(png_path)
+_MIME_TYPES = {
+    ".png": "image/png",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".svg": "image/svg+xml",
+    ".gif": "image/gif",
+}
+
+
+def _inline_image_src(image_path, output_dir=None):
+    """Return a data URI for a small image, or copy to output_dir and return basename."""
+    size = os.path.getsize(image_path)
+    ext = os.path.splitext(image_path)[1].lower()
+    mime = _MIME_TYPES.get(ext, "application/octet-stream")
+
     if size < 200_000:  # inline if < 200KB
-        with open(png_path, "rb") as f:
+        with open(image_path, "rb") as f:
             b64 = base64.b64encode(f.read()).decode("ascii")
-        return f"data:image/png;base64,{b64}"
-    return os.path.basename(png_path)
+        return f"data:{mime};base64,{b64}"
+
+    # Too large to inline: copy to output dir and reference by basename
+    basename = os.path.basename(image_path)
+    if output_dir:
+        dest = os.path.join(output_dir, basename)
+        if os.path.abspath(image_path) != os.path.abspath(dest):
+            shutil.copy2(image_path, dest)
+    return basename
+
+
+def _logo_tag(path, alt, output_dir, css_class="logo-img"):
+    """Build an <img> tag for a logo, inlining or copying as needed."""
+    if not path or not os.path.exists(path):
+        return ""
+    src = _inline_image_src(path, output_dir)
+    return f'<img src="{src}" alt="{html.escape(alt)}" class="{css_class}">'
 
 
 def generate_gallery(entries, output_path, title=None, subtitle=None,
-                     instructor_name=None, instructor_logo_path=None):
+                     description=None, year=None,
+                     instructor_name=None, instructor_logo_path=None,
+                     esa_logo_path=None, raspberry_logo_path=None,
+                     astropi_logo_path=None, mission_zero_logo_path=None):
     """
     Generate a space-themed HTML gallery page.
 
@@ -36,15 +67,26 @@ def generate_gallery(entries, output_path, title=None, subtitle=None,
         output_path: where to write the HTML file
         title: page title (default: "Mission Zero Gallery")
         subtitle: subtitle text
-        instructor_name: name of the local instructor/company
-        instructor_logo_path: path to instructor logo image (optional)
+        description: paragraph below the subtitle (configurable)
+        year: challenge year/season to display (e.g. "2025/26")
+        instructor_name: name of the local promoter/instructor/club
+        instructor_logo_path: path to promoter logo image (must start with promoter-)
+        esa_logo_path: path to ESA logo (white on black)
+        raspberry_logo_path: path to Raspberry Pi Foundation logo (white on black)
+        astropi_logo_path: path to Astro Pi logo
+        mission_zero_logo_path: path to Mission Zero logo
     """
     if title is None:
         title = "Mission Zero Gallery"
     if subtitle is None:
         subtitle = "Our code ran on the International Space Station!"
+    if description is None:
+        description = ("Each animation was coded in Python and displayed "
+                       "on the Astro\u00a0Pi LED\u00a0matrix aboard the ISS.")
     if instructor_name is None:
         instructor_name = "Your School / Club"
+
+    output_dir = os.path.dirname(os.path.abspath(output_path))
 
     cards_html = []
     for i, e in enumerate(entries):
@@ -53,7 +95,7 @@ def generate_gallery(entries, output_path, title=None, subtitle=None,
         video = html.escape(e["video"])
         preview_file = e.get("preview_path", "")
         if preview_file and os.path.exists(preview_file):
-            preview_src = _inline_image_src(preview_file)
+            preview_src = _inline_image_src(preview_file, output_dir)
         else:
             preview_src = html.escape(e["preview"])
         duration = e.get("duration", 0)
@@ -81,16 +123,35 @@ def generate_gallery(entries, output_path, title=None, subtitle=None,
         </div>
       </article>''')
 
-    instructor_logo_tag = ""
+    # ── Build logo tags ──
+    astropi_tag = _logo_tag(astropi_logo_path, "Astro Pi", output_dir)
+    mzero_tag = _logo_tag(mission_zero_logo_path, "Mission Zero", output_dir)
+    esa_tag = _logo_tag(esa_logo_path, "European Space Agency", output_dir)
+    raspberry_tag = _logo_tag(raspberry_logo_path, "Raspberry Pi Foundation", output_dir)
+
     if instructor_logo_path and os.path.exists(instructor_logo_path):
-        instructor_logo_tag = (
-            f'<img src="{_inline_image_src(instructor_logo_path)}" '
-            f'alt="{html.escape(instructor_name)}" class="logo-img">'
+        promoter_tag = (
+            f'<img src="{_inline_image_src(instructor_logo_path, output_dir)}" '
+            f'alt="{html.escape(instructor_name)}" class="logo-img logo-promoter">'
         )
     else:
-        instructor_logo_tag = (
+        promoter_tag = (
             f'<div class="logo-placeholder">{html.escape(instructor_name)}</div>'
         )
+
+    # Wrap org logos in links when present
+    def _wrap_link(tag, href, label):
+        if not tag:
+            return ""
+        return f'<a href="{href}" target="_blank" rel="noopener" aria-label="{label}">{tag}</a>'
+
+    esa_link = _wrap_link(esa_tag, "https://www.esa.int/Education/AstroPI", "European Space Agency")
+    raspberry_link = _wrap_link(raspberry_tag, "https://www.raspberrypi.org", "Raspberry Pi Foundation")
+
+    # Year badge
+    year_html = ""
+    if year:
+        year_html = f'<span class="year-badge">{html.escape(str(year))}</span>'
 
     page = f'''<!DOCTYPE html>
 <html lang="en">
@@ -166,6 +227,7 @@ body{{
 .logos-left{{display:flex;align-items:center;gap:24px;flex-wrap:wrap}}
 .logo-img{{height:44px;width:auto;opacity:.92;transition:opacity .2s}}
 .logo-img:hover{{opacity:1}}
+.logo-promoter{{height:52px}}
 .logo-placeholder{{
   font-family:var(--font-display);font-weight:600;font-size:1rem;
   color:var(--text2);border:2px dashed var(--border);border-radius:10px;
@@ -191,6 +253,12 @@ body{{
   text-shadow:0 0 30px rgba(255,213,79,.25);
 }}
 .hero .sub{{color:var(--text2);margin-top:8px;font-size:.95rem;max-width:600px;margin-inline:auto}}
+.year-badge{{
+  display:inline-block;margin-top:16px;
+  font-family:var(--font-display);font-weight:700;font-size:1.1rem;
+  color:var(--accent);border:2px solid var(--accent);
+  padding:4px 18px;border-radius:20px;letter-spacing:.05em;
+}}
 
 .divider{{
   height:1px;margin:28px auto 36px;max-width:200px;
@@ -320,24 +388,13 @@ body{{
   <!-- Logo bar -->
   <nav class="logo-bar" aria-label="Partner logos">
     <div class="logos-left">
-      <!-- ESA logo -->
-      <a href="https://www.esa.int/Education/AstroPI" target="_blank" rel="noopener" aria-label="European Space Agency">
-        <svg class="logo-img" viewBox="0 0 200 60" fill="none" xmlns="http://www.w3.org/2000/svg" style="height:40px">
-          <rect x="1" y="1" width="198" height="58" rx="8" stroke="#3a5ba0" stroke-width="1.5" fill="none"/>
-          <text x="100" y="38" text-anchor="middle" font-family="Outfit,sans-serif" font-weight="800" font-size="28" fill="#4a8af4" letter-spacing="8">ESA</text>
-        </svg>
-      </a>
-      <!-- Raspberry Pi Foundation logo -->
-      <a href="https://www.raspberrypi.org" target="_blank" rel="noopener" aria-label="Raspberry Pi Foundation">
-        <svg class="logo-img" viewBox="0 0 240 60" fill="none" xmlns="http://www.w3.org/2000/svg" style="height:40px">
-          <rect x="1" y="1" width="238" height="58" rx="8" stroke="#bc1142" stroke-width="1.5" fill="none"/>
-          <circle cx="30" cy="30" r="14" fill="#cd1e56"/>
-          <text x="136" y="37" text-anchor="middle" font-family="Outfit,sans-serif" font-weight="700" font-size="16" fill="#e44a7b">Raspberry Pi</text>
-        </svg>
-      </a>
+      {astropi_tag}
+      {mzero_tag}
+      {esa_link}
+      {raspberry_link}
     </div>
     <div class="logos-right">
-      {instructor_logo_tag}
+      {promoter_tag}
     </div>
   </nav>
 
@@ -345,7 +402,8 @@ body{{
   <header class="hero">
     <h1>{html.escape(title)}</h1>
     <p class="tagline">{html.escape(subtitle)}</p>
-    <p class="sub">Each animation was coded in Python and displayed on the Astro&nbsp;Pi LED&nbsp;matrix aboard the ISS.</p>
+    <p class="sub">{html.escape(description)}</p>
+    {year_html}
   </header>
 
   <div class="divider"></div>

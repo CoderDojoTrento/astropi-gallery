@@ -185,10 +185,16 @@ def main():
     parser.add_argument("--gallery-subtitle",
                         default="Our code ran on the International Space Station!",
                         help="Gallery page subtitle")
+    parser.add_argument("--gallery-description", default=None,
+                        help="Gallery page description paragraph")
+    parser.add_argument("--year", default=None,
+                        help="Challenge year/season (e.g. '2025/26')")
     parser.add_argument("--instructor", default=None,
-                        help="Instructor / school / club name for the gallery")
+                        help="Promoter / instructor / school / club name for the gallery")
     parser.add_argument("--instructor-logo", default=None,
-                        help="Path to instructor logo image for the gallery")
+                        help="Path to promoter logo image (filename must start with promoter-)")
+    parser.add_argument("--logos-dir", default=None,
+                        help="Directory containing logo images (default: img/ next to this script)")
     parser.add_argument("-v", "--verbose", action="store_true",
                         help="Verbose output")
 
@@ -318,14 +324,47 @@ def main():
     # Generate gallery page
     if args.gallery and gallery_entries:
         from gallery import generate_gallery
+
+        # Auto-detect logo images from logos directory
+        logos_dir = Path(args.logos_dir) if args.logos_dir else Path(__file__).parent / "img"
+        logo_files = {
+            "esa": None,
+            "raspberry": None,
+            "astropi": None,
+            "mission_zero": None,
+            "promoter": None,
+        }
+        if logos_dir.is_dir():
+            for f in logos_dir.iterdir():
+                name_lower = f.name.lower()
+                if name_lower.startswith("esa-") or name_lower.startswith("esa_"):
+                    logo_files["esa"] = str(f)
+                elif name_lower.startswith("raspberry-") or name_lower.startswith("raspberry_"):
+                    logo_files["raspberry"] = str(f)
+                elif name_lower.startswith("astropi-") or name_lower.startswith("astropi_"):
+                    logo_files["astropi"] = str(f)
+                elif name_lower.startswith("mission-zero") or name_lower.startswith("mission_zero"):
+                    logo_files["mission_zero"] = str(f)
+                elif name_lower.startswith("promoter-") or name_lower.startswith("promoter_"):
+                    logo_files["promoter"] = str(f)
+
+        # CLI flags override auto-detected logos
+        instructor_logo = args.instructor_logo or logo_files["promoter"]
+
         gallery_path = str(output_dir / "index.html")
         generate_gallery(
             gallery_entries,
             gallery_path,
             title=args.gallery_title,
             subtitle=args.gallery_subtitle,
+            description=args.gallery_description,
+            year=args.year,
             instructor_name=args.instructor,
-            instructor_logo_path=args.instructor_logo,
+            instructor_logo_path=instructor_logo,
+            esa_logo_path=logo_files["esa"],
+            raspberry_logo_path=logo_files["raspberry"],
+            astropi_logo_path=logo_files["astropi"],
+            mission_zero_logo_path=logo_files["mission_zero"],
         )
         print(f"\n🌟 Gallery: {gallery_path} ({len(gallery_entries)} projects)")
 
