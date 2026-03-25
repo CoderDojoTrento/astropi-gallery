@@ -41,7 +41,11 @@ def _inline_image_src(image_path, output_dir=None):
 
 def _logo_tag(path, alt, output_dir, css_class="logo-img"):
     """Build an <img> tag for a logo, inlining or copying as needed."""
-    if not path or not os.path.exists(path):
+    if not path:
+        return ""
+    if not os.path.exists(path):
+        import warnings
+        warnings.warn(f"Logo image not found: {path}")
         return ""
     src = _inline_image_src(path, output_dir)
     return f'<img src="{src}" alt="{html.escape(alt)}" class="{css_class}">'
@@ -124,8 +128,8 @@ def generate_gallery(entries, output_path, title=None, subtitle=None,
       </article>''')
 
     # ── Build logo tags ──
-    astropi_tag = _logo_tag(astropi_logo_path, "Astro Pi", output_dir)
-    mzero_tag = _logo_tag(mission_zero_logo_path, "Mission Zero", output_dir)
+    astropi_tag = _logo_tag(astropi_logo_path, "Astro Pi", output_dir, "logo-hero")
+    mzero_tag = _logo_tag(mission_zero_logo_path, "Mission Zero", output_dir, "logo-hero")
     esa_tag = _logo_tag(esa_logo_path, "European Space Agency", output_dir)
     raspberry_tag = _logo_tag(raspberry_logo_path, "Raspberry Pi Foundation", output_dir)
 
@@ -200,21 +204,50 @@ body{{
     var(--bg);
 }}
 
-/* ── stars (static CSS, no animation loop) ── */
+/* ── stars ── */
 .stars{{
   position:fixed;inset:0;z-index:0;pointer-events:none;
   background-image:
-    radial-gradient(1px 1px at 15% 25%,rgba(255,255,255,.7),transparent),
-    radial-gradient(1px 1px at 45% 65%,rgba(255,255,255,.5),transparent),
-    radial-gradient(1.5px 1.5px at 72% 12%,rgba(255,255,255,.8),transparent),
-    radial-gradient(1px 1px at 88% 78%,rgba(255,255,255,.4),transparent),
-    radial-gradient(1px 1px at 32% 90%,rgba(255,255,255,.6),transparent),
-    radial-gradient(1.5px 1.5px at 55% 40%,rgba(0,229,255,.6),transparent),
-    radial-gradient(1px 1px at 8% 55%,rgba(255,255,255,.5),transparent),
-    radial-gradient(1px 1px at 95% 35%,rgba(255,45,120,.4),transparent),
-    radial-gradient(1px 1px at 62% 88%,rgba(255,255,255,.3),transparent),
-    radial-gradient(1.5px 1.5px at 25% 50%,rgba(255,213,79,.5),transparent);
+    /* bright stars */
+    radial-gradient(2px 2px at 10% 15%,rgba(255,255,255,.95),transparent),
+    radial-gradient(2px 2px at 68% 8%,rgba(255,255,255,.9),transparent),
+    radial-gradient(2.5px 2.5px at 42% 22%,rgba(200,220,255,1),transparent),
+    radial-gradient(2px 2px at 85% 30%,rgba(255,255,255,.85),transparent),
+    radial-gradient(1.5px 1.5px at 22% 45%,rgba(255,255,255,.8),transparent),
+    radial-gradient(2px 2px at 55% 52%,rgba(0,229,255,.9),transparent),
+    radial-gradient(1.5px 1.5px at 78% 60%,rgba(255,255,255,.7),transparent),
+    radial-gradient(2px 2px at 35% 72%,rgba(255,213,79,.8),transparent),
+    radial-gradient(2.5px 2.5px at 92% 80%,rgba(255,255,255,.9),transparent),
+    radial-gradient(1.5px 1.5px at 15% 88%,rgba(181,76,255,.7),transparent),
+    /* medium stars */
+    radial-gradient(1.5px 1.5px at 5% 35%,rgba(255,255,255,.7),transparent),
+    radial-gradient(1px 1px at 30% 10%,rgba(255,255,255,.6),transparent),
+    radial-gradient(1.5px 1.5px at 50% 40%,rgba(255,255,255,.65),transparent),
+    radial-gradient(1px 1px at 75% 48%,rgba(255,255,255,.55),transparent),
+    radial-gradient(1.5px 1.5px at 95% 55%,rgba(255,255,255,.6),transparent),
+    radial-gradient(1px 1px at 18% 65%,rgba(255,255,255,.5),transparent),
+    radial-gradient(1.5px 1.5px at 60% 75%,rgba(255,255,255,.6),transparent),
+    radial-gradient(1px 1px at 40% 90%,rgba(255,255,255,.5),transparent),
+    /* dim stars */
+    radial-gradient(1px 1px at 8% 5%,rgba(255,255,255,.4),transparent),
+    radial-gradient(1px 1px at 25% 28%,rgba(255,255,255,.35),transparent),
+    radial-gradient(1px 1px at 48% 58%,rgba(255,255,255,.3),transparent),
+    radial-gradient(1px 1px at 88% 42%,rgba(255,255,255,.35),transparent),
+    radial-gradient(1px 1px at 62% 95%,rgba(255,255,255,.3),transparent),
+    radial-gradient(1px 1px at 3% 78%,rgba(255,255,255,.25),transparent),
+    radial-gradient(1px 1px at 72% 18%,rgba(255,255,255,.3),transparent),
+    radial-gradient(1px 1px at 38% 55%,rgba(255,255,255,.25),transparent);
   background-size:100% 100%;
+}}
+@keyframes twinkle{{0%,100%{{opacity:.7}}50%{{opacity:1}}}}
+.stars::after{{
+  content:'';position:absolute;inset:0;
+  background-image:
+    radial-gradient(2.5px 2.5px at 20% 30%,rgba(255,255,255,.9),transparent),
+    radial-gradient(2px 2px at 60% 70%,rgba(0,229,255,.8),transparent),
+    radial-gradient(2px 2px at 80% 15%,rgba(255,213,79,.7),transparent),
+    radial-gradient(2.5px 2.5px at 45% 85%,rgba(255,255,255,.85),transparent);
+  animation:twinkle 4s ease-in-out infinite;
 }}
 
 .page{{position:relative;z-index:1;max-width:1280px;margin:0 auto;padding:0 24px}}
@@ -225,9 +258,10 @@ body{{
   padding:28px 0 20px;gap:20px;flex-wrap:wrap;
 }}
 .logos-left{{display:flex;align-items:center;gap:24px;flex-wrap:wrap}}
-.logo-img{{height:44px;width:auto;opacity:.92;transition:opacity .2s}}
+.logo-img{{height:56px;width:auto;opacity:.92;transition:opacity .2s}}
 .logo-img:hover{{opacity:1}}
-.logo-promoter{{height:52px}}
+.logo-promoter{{height:64px}}
+.logo-hero{{height:auto;max-height:80px;width:auto;max-width:340px;opacity:1}}
 .logo-placeholder{{
   font-family:var(--font-display);font-weight:600;font-size:1rem;
   color:var(--text2);border:2px dashed var(--border);border-radius:10px;
@@ -238,6 +272,10 @@ body{{
 
 /* ── header ── */
 .hero{{text-align:center;padding:36px 0 12px}}
+.hero-logos{{
+  display:flex;align-items:center;justify-content:center;
+  gap:28px;flex-wrap:wrap;margin-bottom:8px;
+}}
 .hero h1{{
   font-family:var(--font-display);font-weight:800;
   font-size:clamp(2rem,5.5vw,3.6rem);
@@ -388,8 +426,6 @@ body{{
   <!-- Logo bar -->
   <nav class="logo-bar" aria-label="Partner logos">
     <div class="logos-left">
-      {astropi_tag}
-      {mzero_tag}
       {esa_link}
       {raspberry_link}
     </div>
@@ -400,7 +436,11 @@ body{{
 
   <!-- Hero -->
   <header class="hero">
-    <h1>{html.escape(title)}</h1>
+    <div class="hero-logos">
+      {astropi_tag}
+      {mzero_tag}
+    </div>
+    <h1 class="sr-only">{html.escape(title)}</h1>
     <p class="tagline">{html.escape(subtitle)}</p>
     <p class="sub">{html.escape(description)}</p>
     {year_html}
@@ -420,7 +460,7 @@ body{{
       project run with the
       <a href="https://www.raspberrypi.org" target="_blank" rel="noopener">Raspberry Pi Foundation</a>
     </p>
-    <p>Videos recorded with <strong>mz-recorder</strong></p>
+    <p>Videos recorded with <strong>astropi-gallery</strong></p>
   </footer>
 </div>
 

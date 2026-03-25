@@ -340,11 +340,15 @@ def main():
                 if name_lower.startswith("esa-") or name_lower.startswith("esa_"):
                     logo_files["esa"] = str(f)
                 elif name_lower.startswith("raspberry-") or name_lower.startswith("raspberry_"):
-                    logo_files["raspberry"] = str(f)
+                    # Prefer white-on-black version for dark background
+                    if "white" in name_lower or logo_files["raspberry"] is None:
+                        logo_files["raspberry"] = str(f)
                 elif name_lower.startswith("astropi-") or name_lower.startswith("astropi_"):
                     logo_files["astropi"] = str(f)
                 elif name_lower.startswith("mission-zero") or name_lower.startswith("mission_zero"):
-                    logo_files["mission_zero"] = str(f)
+                    # Prefer the version with writing (the .png) for the title
+                    if "no-writing" not in name_lower or logo_files["mission_zero"] is None:
+                        logo_files["mission_zero"] = str(f)
                 elif name_lower.startswith("promoter-") or name_lower.startswith("promoter_"):
                     logo_files["promoter"] = str(f)
 
