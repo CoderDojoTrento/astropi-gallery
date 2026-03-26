@@ -261,7 +261,7 @@ body{{
 .logo-img{{height:56px;width:auto;opacity:.92;transition:opacity .2s}}
 .logo-img:hover{{opacity:1}}
 .logo-promoter{{height:64px}}
-.logo-hero{{height:auto;max-height:80px;width:auto;max-width:340px;opacity:1}}
+.logo-hero{{max-width:340px;opacity:1}}
 .logo-placeholder{{
   font-family:var(--font-display);font-weight:600;font-size:1rem;
   color:var(--text2);border:2px dashed var(--border);border-radius:10px;

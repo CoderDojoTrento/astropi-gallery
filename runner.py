@@ -183,7 +183,7 @@ def main():
     parser.add_argument("--gallery-title", default="Mission Zero Gallery",
                         help="Gallery page title")
     parser.add_argument("--gallery-subtitle",
-                        default="Our code ran on the International Space Station!",
+                        default="Our code ran on the International Space Station (ISS)!",
                         help="Gallery page subtitle")
     parser.add_argument("--gallery-description", default=None,
                         help="Gallery page description paragraph")
