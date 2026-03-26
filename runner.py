@@ -193,6 +193,8 @@ def main():
                         help="Promoter / instructor / school / club name for the gallery")
     parser.add_argument("--instructor-logo", default=None,
                         help="Path to promoter logo image (filename must start with promoter-)")
+    parser.add_argument("--instructor-link", default=None,
+                        help="URL for the promoter logo (opens in new tab)")
     parser.add_argument("--logos-dir", default=None,
                         help="Directory containing logo images (default: img/ next to this script)")
     parser.add_argument("-v", "--verbose", action="store_true",
@@ -365,6 +367,7 @@ def main():
             year=args.year,
             instructor_name=args.instructor,
             instructor_logo_path=instructor_logo,
+            instructor_link=args.instructor_link,
             esa_logo_path=logo_files["esa"],
             raspberry_logo_path=logo_files["raspberry"],
             astropi_logo_path=logo_files["astropi"],

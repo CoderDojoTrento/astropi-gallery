@@ -54,6 +54,7 @@ def _logo_tag(path, alt, output_dir, css_class="logo-img"):
 def generate_gallery(entries, output_path, title=None, subtitle=None,
                      description=None, year=None,
                      instructor_name=None, instructor_logo_path=None,
+                     instructor_link=None,
                      esa_logo_path=None, raspberry_logo_path=None,
                      astropi_logo_path=None, mission_zero_logo_path=None):
     """
@@ -70,11 +71,12 @@ def generate_gallery(entries, output_path, title=None, subtitle=None,
             - criteria_pass: bool (optional)
         output_path: where to write the HTML file
         title: page title (default: "Mission Zero Gallery")
-        subtitle: subtitle text
-        description: paragraph below the subtitle (configurable)
+        subtitle: subtitle text (may contain HTML link tags)
+        description: paragraph below the subtitle (may contain HTML link tags)
         year: challenge year/season to display (e.g. "2025/26")
         instructor_name: name of the local promoter/instructor/club
         instructor_logo_path: path to promoter logo image (must start with promoter-)
+        instructor_link: URL for the promoter logo (opens in new tab)
         esa_logo_path: path to ESA logo (white on black)
         raspberry_logo_path: path to Raspberry Pi Foundation logo (white on black)
         astropi_logo_path: path to Astro Pi logo
@@ -134,14 +136,23 @@ def generate_gallery(entries, output_path, title=None, subtitle=None,
     raspberry_tag = _logo_tag(raspberry_logo_path, "Raspberry Pi Foundation", output_dir)
 
     if instructor_logo_path and os.path.exists(instructor_logo_path):
-        promoter_tag = (
+        promoter_inner = (
             f'<img src="{_inline_image_src(instructor_logo_path, output_dir)}" '
             f'alt="{html.escape(instructor_name)}" class="logo-img logo-promoter">'
         )
     else:
-        promoter_tag = (
+        promoter_inner = (
             f'<div class="logo-placeholder">{html.escape(instructor_name)}</div>'
         )
+
+    if instructor_link:
+        promoter_tag = (
+            f'<a href="{html.escape(instructor_link)}" target="_blank" '
+            f'rel="noopener" aria-label="{html.escape(instructor_name)}">'
+            f'{promoter_inner}</a>'
+        )
+    else:
+        promoter_tag = promoter_inner
 
     # Wrap org logos in links when present
     def _wrap_link(tag, href, label):
@@ -209,44 +220,90 @@ body{{
   position:fixed;inset:0;z-index:0;pointer-events:none;
   background-image:
     /* bright stars */
-    radial-gradient(2px 2px at 10% 15%,rgba(255,255,255,.95),transparent),
-    radial-gradient(2px 2px at 68% 8%,rgba(255,255,255,.9),transparent),
-    radial-gradient(2.5px 2.5px at 42% 22%,rgba(200,220,255,1),transparent),
-    radial-gradient(2px 2px at 85% 30%,rgba(255,255,255,.85),transparent),
-    radial-gradient(1.5px 1.5px at 22% 45%,rgba(255,255,255,.8),transparent),
-    radial-gradient(2px 2px at 55% 52%,rgba(0,229,255,.9),transparent),
-    radial-gradient(1.5px 1.5px at 78% 60%,rgba(255,255,255,.7),transparent),
-    radial-gradient(2px 2px at 35% 72%,rgba(255,213,79,.8),transparent),
-    radial-gradient(2.5px 2.5px at 92% 80%,rgba(255,255,255,.9),transparent),
-    radial-gradient(1.5px 1.5px at 15% 88%,rgba(181,76,255,.7),transparent),
-    /* medium stars */
-    radial-gradient(1.5px 1.5px at 5% 35%,rgba(255,255,255,.7),transparent),
-    radial-gradient(1px 1px at 30% 10%,rgba(255,255,255,.6),transparent),
-    radial-gradient(1.5px 1.5px at 50% 40%,rgba(255,255,255,.65),transparent),
-    radial-gradient(1px 1px at 75% 48%,rgba(255,255,255,.55),transparent),
-    radial-gradient(1.5px 1.5px at 95% 55%,rgba(255,255,255,.6),transparent),
-    radial-gradient(1px 1px at 18% 65%,rgba(255,255,255,.5),transparent),
-    radial-gradient(1.5px 1.5px at 60% 75%,rgba(255,255,255,.6),transparent),
-    radial-gradient(1px 1px at 40% 90%,rgba(255,255,255,.5),transparent),
-    /* dim stars */
-    radial-gradient(1px 1px at 8% 5%,rgba(255,255,255,.4),transparent),
-    radial-gradient(1px 1px at 25% 28%,rgba(255,255,255,.35),transparent),
-    radial-gradient(1px 1px at 48% 58%,rgba(255,255,255,.3),transparent),
-    radial-gradient(1px 1px at 88% 42%,rgba(255,255,255,.35),transparent),
-    radial-gradient(1px 1px at 62% 95%,rgba(255,255,255,.3),transparent),
-    radial-gradient(1px 1px at 3% 78%,rgba(255,255,255,.25),transparent),
-    radial-gradient(1px 1px at 72% 18%,rgba(255,255,255,.3),transparent),
-    radial-gradient(1px 1px at 38% 55%,rgba(255,255,255,.25),transparent);
+    radial-gradient(2.5px 2.5px at 4% 7%,rgba(255,255,255,.95),transparent),
+    radial-gradient(2px 2px at 12% 18%,rgba(200,220,255,1),transparent),
+    radial-gradient(2px 2px at 23% 4%,rgba(255,255,255,.9),transparent),
+    radial-gradient(2.5px 2.5px at 36% 14%,rgba(255,255,255,.85),transparent),
+    radial-gradient(2px 2px at 48% 9%,rgba(0,229,255,.9),transparent),
+    radial-gradient(2px 2px at 61% 6%,rgba(255,255,255,.9),transparent),
+    radial-gradient(2.5px 2.5px at 74% 11%,rgba(200,220,255,.95),transparent),
+    radial-gradient(2px 2px at 87% 3%,rgba(255,255,255,.85),transparent),
+    radial-gradient(2px 2px at 95% 16%,rgba(255,213,79,.8),transparent),
+    radial-gradient(2px 2px at 8% 32%,rgba(255,255,255,.9),transparent),
+    radial-gradient(2.5px 2.5px at 19% 41%,rgba(0,229,255,.85),transparent),
+    radial-gradient(2px 2px at 33% 28%,rgba(255,255,255,.85),transparent),
+    radial-gradient(2px 2px at 44% 38%,rgba(255,255,255,.9),transparent),
+    radial-gradient(2.5px 2.5px at 58% 45%,rgba(200,220,255,.95),transparent),
+    radial-gradient(2px 2px at 69% 33%,rgba(255,213,79,.8),transparent),
+    radial-gradient(2px 2px at 82% 42%,rgba(255,255,255,.9),transparent),
+    radial-gradient(2.5px 2.5px at 93% 36%,rgba(181,76,255,.8),transparent),
+    radial-gradient(2px 2px at 5% 55%,rgba(255,255,255,.85),transparent),
+    radial-gradient(2px 2px at 16% 63%,rgba(255,255,255,.9),transparent),
+    radial-gradient(2.5px 2.5px at 28% 58%,rgba(0,229,255,.85),transparent),
+    radial-gradient(2px 2px at 41% 67%,rgba(255,255,255,.85),transparent),
+    radial-gradient(2px 2px at 53% 54%,rgba(200,220,255,.9),transparent),
+    radial-gradient(2.5px 2.5px at 66% 62%,rgba(255,255,255,.95),transparent),
+    radial-gradient(2px 2px at 78% 57%,rgba(255,255,255,.85),transparent),
+    radial-gradient(2px 2px at 91% 65%,rgba(255,213,79,.75),transparent),
+    radial-gradient(2px 2px at 10% 78%,rgba(181,76,255,.7),transparent),
+    radial-gradient(2.5px 2.5px at 22% 84%,rgba(255,255,255,.9),transparent),
+    radial-gradient(2px 2px at 35% 76%,rgba(255,255,255,.85),transparent),
+    radial-gradient(2px 2px at 47% 88%,rgba(0,229,255,.8),transparent),
+    radial-gradient(2.5px 2.5px at 62% 81%,rgba(255,255,255,.9),transparent),
+    radial-gradient(2px 2px at 75% 92%,rgba(200,220,255,.85),transparent),
+    radial-gradient(2px 2px at 88% 85%,rgba(255,255,255,.9),transparent),
+    radial-gradient(2.5px 2.5px at 97% 78%,rgba(255,255,255,.85),transparent);
   background-size:100% 100%;
 }}
-@keyframes twinkle{{0%,100%{{opacity:.7}}50%{{opacity:1}}}}
+@keyframes twinkle{{0%,100%{{opacity:.6}}50%{{opacity:1}}}}
+@keyframes twinkle2{{0%,100%{{opacity:.8}}60%{{opacity:.4}}}}
+/* dim + medium star field */
+.stars::before{{
+  content:'';position:absolute;inset:0;
+  background-image:
+    radial-gradient(1.5px 1.5px at 2% 12%,rgba(255,255,255,.6),transparent),
+    radial-gradient(1px 1px at 7% 26%,rgba(255,255,255,.45),transparent),
+    radial-gradient(1.5px 1.5px at 14% 8%,rgba(255,255,255,.55),transparent),
+    radial-gradient(1px 1px at 18% 52%,rgba(255,255,255,.4),transparent),
+    radial-gradient(1.5px 1.5px at 24% 35%,rgba(255,255,255,.6),transparent),
+    radial-gradient(1px 1px at 29% 68%,rgba(255,255,255,.35),transparent),
+    radial-gradient(1.5px 1.5px at 34% 18%,rgba(255,255,255,.55),transparent),
+    radial-gradient(1px 1px at 38% 82%,rgba(255,255,255,.4),transparent),
+    radial-gradient(1.5px 1.5px at 43% 48%,rgba(255,255,255,.5),transparent),
+    radial-gradient(1px 1px at 47% 5%,rgba(255,255,255,.4),transparent),
+    radial-gradient(1.5px 1.5px at 52% 72%,rgba(255,255,255,.55),transparent),
+    radial-gradient(1px 1px at 56% 30%,rgba(255,255,255,.45),transparent),
+    radial-gradient(1.5px 1.5px at 61% 92%,rgba(255,255,255,.5),transparent),
+    radial-gradient(1px 1px at 65% 15%,rgba(255,255,255,.4),transparent),
+    radial-gradient(1.5px 1.5px at 70% 55%,rgba(255,255,255,.6),transparent),
+    radial-gradient(1px 1px at 74% 40%,rgba(255,255,255,.35),transparent),
+    radial-gradient(1.5px 1.5px at 79% 78%,rgba(255,255,255,.5),transparent),
+    radial-gradient(1px 1px at 83% 22%,rgba(255,255,255,.45),transparent),
+    radial-gradient(1.5px 1.5px at 88% 60%,rgba(255,255,255,.55),transparent),
+    radial-gradient(1px 1px at 92% 8%,rgba(255,255,255,.4),transparent),
+    radial-gradient(1.5px 1.5px at 96% 45%,rgba(255,255,255,.5),transparent),
+    radial-gradient(1px 1px at 3% 95%,rgba(255,255,255,.35),transparent),
+    radial-gradient(1px 1px at 15% 74%,rgba(255,255,255,.3),transparent),
+    radial-gradient(1px 1px at 27% 90%,rgba(255,255,255,.35),transparent),
+    radial-gradient(1px 1px at 40% 60%,rgba(255,255,255,.3),transparent),
+    radial-gradient(1px 1px at 55% 20%,rgba(255,255,255,.25),transparent),
+    radial-gradient(1px 1px at 68% 85%,rgba(255,255,255,.3),transparent),
+    radial-gradient(1px 1px at 80% 50%,rgba(255,255,255,.25),transparent),
+    radial-gradient(1px 1px at 94% 72%,rgba(255,255,255,.3),transparent);
+  background-size:100% 100%;
+}}
+/* twinkling overlay */
 .stars::after{{
   content:'';position:absolute;inset:0;
   background-image:
     radial-gradient(2.5px 2.5px at 20% 30%,rgba(255,255,255,.9),transparent),
     radial-gradient(2px 2px at 60% 70%,rgba(0,229,255,.8),transparent),
     radial-gradient(2px 2px at 80% 15%,rgba(255,213,79,.7),transparent),
-    radial-gradient(2.5px 2.5px at 45% 85%,rgba(255,255,255,.85),transparent);
+    radial-gradient(2.5px 2.5px at 45% 85%,rgba(255,255,255,.85),transparent),
+    radial-gradient(2px 2px at 15% 60%,rgba(181,76,255,.7),transparent),
+    radial-gradient(2.5px 2.5px at 90% 50%,rgba(255,255,255,.8),transparent),
+    radial-gradient(2px 2px at 35% 10%,rgba(0,229,255,.7),transparent),
+    radial-gradient(2px 2px at 70% 40%,rgba(255,255,255,.85),transparent);
   animation:twinkle 4s ease-in-out infinite;
 }}
 
@@ -441,8 +498,8 @@ body{{
       {mzero_tag}
     </div>
     <h1 class="sr-only">{html.escape(title)}</h1>
-    <p class="tagline">{html.escape(subtitle)}</p>
-    <p class="sub">{html.escape(description)}</p>
+    <p class="tagline">{subtitle}</p>
+    <p class="sub">{description}</p>
     {year_html}
   </header>
 
@@ -460,7 +517,7 @@ body{{
       project run with the
       <a href="https://www.raspberrypi.org" target="_blank" rel="noopener">Raspberry Pi Foundation</a>
     </p>
-    <p>Videos recorded with <strong>astropi-gallery</strong></p>
+    <p>Videos recorded with <a href="https://github.com/CoderDojoTrento/astropi-gallery" target="_blank" rel="noopener"><strong>astropi-gallery</strong></a></p>
   </footer>
 </div>
 
