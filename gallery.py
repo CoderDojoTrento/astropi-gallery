@@ -292,7 +292,7 @@ body{{
     radial-gradient(1px 1px at 94% 72%,rgba(255,255,255,.3),transparent);
   background-size:100% 100%;
 }}
-/* twinkling overlay */
+/* extra bright stars layer */
 .stars::after{{
   content:'';position:absolute;inset:0;
   background-image:
@@ -304,7 +304,7 @@ body{{
     radial-gradient(2.5px 2.5px at 90% 50%,rgba(255,255,255,.8),transparent),
     radial-gradient(2px 2px at 35% 10%,rgba(0,229,255,.7),transparent),
     radial-gradient(2px 2px at 70% 40%,rgba(255,255,255,.85),transparent);
-  animation:twinkle 4s ease-in-out infinite;
+  background-size:100% 100%;
 }}
 
 .page{{position:relative;z-index:1;max-width:1280px;margin:0 auto;padding:0 24px}}
@@ -348,6 +348,8 @@ body{{
   text-shadow:0 0 30px rgba(255,213,79,.25);
 }}
 .hero .sub{{color:var(--text2);margin-top:8px;font-size:.95rem;max-width:600px;margin-inline:auto}}
+.hero a{{color:var(--accent);text-decoration:none}}
+.hero a:hover{{text-decoration:underline}}
 .year-badge{{
   display:inline-block;margin-top:16px;
   font-family:var(--font-display);font-weight:700;font-size:1.1rem;
