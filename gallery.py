@@ -114,19 +114,52 @@ def generate_gallery(entries, output_path, title=None, subtitle=None,
             badge = '<span class="badge fail" title="Does not meet all criteria">&#x26A0; Needs Fix</span>'
 
         dur_str = f"{duration:.0f}s" if duration else ""
+        script_name = e.get("script", "")
+
+        by_html = f' <span class="card-sub">&ensp; by {participant}</span>' if participant else ""
+
+        # Read the script source for the preview lightbox
+        script_src = ""
+        if script_name:
+            script_path = os.path.join(output_dir, script_name)
+            if os.path.exists(script_path):
+                with open(script_path, encoding="utf-8") as sf:
+                    script_src = sf.read()
+
+        # Hidden store for the script source (read by the preview lightbox)
+        script_store = ""
+        script_buttons = ""
+        if script_name:
+            script_store = (
+                f'<pre class="script-store" id="script-{i}" hidden>'
+                f'{html.escape(script_src)}</pre>'
+            )
+            script_buttons = (
+                f'<a href="{html.escape(script_name)}" data-action="dl" '
+                f'title="Download script">&#11015; Script</a>'
+                f'<a href="{html.escape(script_name)}" data-action="preview-script" '
+                f'data-index="{i}" title="See code">&#128196; See code</a>'
+            )
 
         cards_html.append(f'''
-      <article class="card" data-video="{video}" data-name="{html.escape(project)}" tabindex="0">
+      <article class="card" data-video="{video}" data-name="{html.escape(project)}"
+               data-index="{i}" tabindex="0">
         <div class="card-img">
           <img src="{preview_src}" alt="{html.escape(project)}" loading="lazy" width="378" height="378">
           <div class="play-icon" aria-hidden="true">&#9654;</div>
           <span class="dur">{dur_str}</span>
         </div>
         <div class="card-body">
-          <h3 class="card-title">{project}</h3>
-          <p class="card-sub">{participant}</p>
-          {badge}
+          <h3 class="card-title">{project}{by_html}</h3>
+          <div class="card-foot">
+            {badge}
+            <div class="card-actions">
+              <a href="{video}" data-action="dl" title="Download video">&#11015; Video</a>
+              {script_buttons}
+            </div>
+          </div>
         </div>
+        {script_store}
       </article>''')
 
     # ── Build logo tags ──
@@ -419,7 +452,7 @@ body{{
   font-family:var(--font-display);font-weight:700;
   font-size:1.1rem;line-height:1.3;color:var(--text);
 }}
-.card-sub{{color:var(--text2);font-size:.85rem;margin-top:3px}}
+.card-sub{{color:var(--text2);font-size:.85rem;font-weight:400}}
 
 .badge{{
   display:inline-block;margin-top:8px;font-size:.75rem;font-weight:700;
@@ -427,6 +460,50 @@ body{{
 }}
 .badge.pass{{background:rgba(0,229,120,.15);color:#00e578;border:1px solid rgba(0,229,120,.25)}}
 .badge.fail{{background:rgba(255,45,120,.12);color:var(--accent2);border:1px solid rgba(255,45,120,.2)}}
+
+.card-foot{{
+  display:flex;align-items:center;gap:8px;margin-top:12px;flex-wrap:wrap;
+}}
+.card-foot .badge{{margin-top:0}}
+.card-actions{{
+  display:flex;gap:6px;margin-left:auto;flex-wrap:wrap;
+}}
+.card-actions a{{
+  display:inline-flex;align-items:center;gap:4px;cursor:pointer;
+  font-size:.72rem;font-weight:600;color:var(--accent);
+  text-decoration:none;padding:3px 8px;white-space:nowrap;
+  border:1px solid var(--border);border-radius:8px;
+  transition:border-color .15s,background .15s;
+}}
+.card-actions a:hover{{
+  border-color:var(--accent);background:rgba(0,229,255,.08);
+}}
+
+/* ── script preview ── */
+.script-box{{width:min(94vw,860px)}}
+.script-head{{
+  display:flex;align-items:center;justify-content:space-between;
+  gap:12px;padding:16px 20px 10px;
+}}
+.script-view{{
+  margin:0 20px 20px;max-height:64vh;overflow:auto;
+  background:#0a0c1a;border:1px solid var(--border);border-radius:10px;
+  padding:16px;
+}}
+.script-view code{{
+  display:block;white-space:pre;user-select:text;
+  font-family:'SF Mono',ui-monospace,'Cascadia Code',Consolas,monospace;
+  font-size:.85rem;line-height:1.55;color:var(--text);tab-size:4;
+}}
+.copy-btn{{
+  font-family:var(--font-display);font-weight:700;font-size:.8rem;
+  color:var(--accent);background:rgba(0,229,255,.08);
+  border:1px solid var(--accent);border-radius:8px;
+  padding:6px 16px;cursor:pointer;white-space:nowrap;
+  transition:background .15s;
+}}
+.copy-btn:hover{{background:rgba(0,229,255,.18)}}
+.copy-btn.copied{{color:#00e578;border-color:#00e578;background:rgba(0,229,120,.12)}}
 
 /* ── lightbox ── */
 .lightbox{{
@@ -528,6 +605,7 @@ body{{
       project run with the
       <a href="https://www.raspberrypi.org" target="_blank" rel="noopener">Raspberry Pi Foundation</a>
     </p>
+    <p>Try the official Astro Pi simulator: <a href="https://rpf.io/mzcode" target="_blank" rel="noopener"><strong>rpf.io/mzcode</strong></a></p>
     <p>Videos recorded with <a href="https://github.com/CoderDojoTrento/astropi-gallery" target="_blank" rel="noopener"><strong>astropi-gallery</strong></a></p>
   </footer>
 </div>
@@ -541,6 +619,18 @@ body{{
   </div>
 </div>
 
+<!-- Script preview lightbox -->
+<div class="lightbox" id="slb" role="dialog" aria-modal="true" aria-label="Script source">
+  <div class="lightbox-inner script-box">
+    <button class="lightbox-close" id="slb-close" aria-label="Close">&times;</button>
+    <div class="script-head">
+      <span class="lightbox-title" id="slb-title" style="padding:0"></span>
+      <button class="copy-btn" id="slb-copy" type="button">Copy</button>
+    </div>
+    <pre class="script-view"><code id="slb-code"></code></pre>
+  </div>
+</div>
+
 <script>
 (function(){{
   var lb=document.getElementById("lb"),
@@ -548,19 +638,46 @@ body{{
       lbTitle=document.getElementById("lb-title"),
       closeBtn=document.getElementById("lb-close");
 
-  // Open lightbox on card click/enter
-  document.querySelector(".grid").addEventListener("click",function(e){{
+  var slb=document.getElementById("slb"),
+      slbCode=document.getElementById("slb-code"),
+      slbTitle=document.getElementById("slb-title"),
+      slbClose=document.getElementById("slb-close"),
+      slbCopy=document.getElementById("slb-copy");
+
+  var grid=document.querySelector(".grid");
+
+  function forceDownload(url){{
+    var filename=url.split("/").pop();
+    fetch(url).then(function(r){{return r.blob();}}).then(function(blob){{
+      var u=URL.createObjectURL(blob),a=document.createElement("a");
+      a.href=u;a.download=filename;
+      document.body.appendChild(a);a.click();a.remove();
+      setTimeout(function(){{URL.revokeObjectURL(u);}},1000);
+    }});
+  }}
+
+  // Delegate clicks: action buttons take priority, else open the video
+  grid.addEventListener("click",function(e){{
+    var action=e.target.closest("[data-action]");
+    if(action){{
+      e.preventDefault();
+      e.stopPropagation();
+      var act=action.dataset.action;
+      if(act==="dl")             forceDownload(action.getAttribute("href"));
+      else if(act==="preview-script") openScript(action.dataset.index,action.getAttribute("href"));
+      return;
+    }}
     var card=e.target.closest(".card");
-    if(!card)return;
-    openLB(card.dataset.video,card.dataset.name);
+    if(card)openLB(card.dataset.video,card.dataset.name);
   }});
-  document.querySelector(".grid").addEventListener("keydown",function(e){{
-    if(e.key==="Enter"){{
+  grid.addEventListener("keydown",function(e){{
+    if(e.key==="Enter"&&!e.target.closest("[data-action]")){{
       var card=e.target.closest(".card");
       if(card)openLB(card.dataset.video,card.dataset.name);
     }}
   }});
 
+  // ── Video lightbox ──
   function openLB(src,name){{
     vid.src=src;
     lbTitle.textContent=name;
@@ -569,7 +686,6 @@ body{{
     vid.play().catch(function(){{}});
     closeBtn.focus();
   }}
-
   function closeLB(){{
     lb.classList.remove("open");
     vid.pause();
@@ -577,13 +693,45 @@ body{{
     vid.load();
     document.body.style.overflow="";
   }}
-
   closeBtn.addEventListener("click",closeLB);
-  lb.addEventListener("click",function(e){{
-    if(e.target===lb)closeLB();
+  lb.addEventListener("click",function(e){{if(e.target===lb)closeLB();}});
+
+  // ── Script preview lightbox ──
+  function openScript(index,filename){{
+    var store=document.getElementById("script-"+index);
+    slbCode.textContent=store?store.textContent:"(source unavailable)";
+    slbTitle.textContent=filename||"Script";
+    slbCopy.textContent="Copy";
+    slbCopy.classList.remove("copied");
+    slb.classList.add("open");
+    document.body.style.overflow="hidden";
+    slbClose.focus();
+  }}
+  function closeScript(){{
+    slb.classList.remove("open");
+    document.body.style.overflow="";
+  }}
+  slbClose.addEventListener("click",closeScript);
+  slb.addEventListener("click",function(e){{if(e.target===slb)closeScript();}});
+  slbCopy.addEventListener("click",function(){{
+    var text=slbCode.textContent;
+    function done(){{slbCopy.textContent="Copied!";slbCopy.classList.add("copied");}}
+    if(navigator.clipboard&&navigator.clipboard.writeText){{
+      navigator.clipboard.writeText(text).then(done).catch(selectFallback);
+    }}else{{selectFallback();}}
+    function selectFallback(){{
+      var r=document.createRange();r.selectNodeContents(slbCode);
+      var sel=window.getSelection();sel.removeAllRanges();sel.addRange(r);
+      try{{document.execCommand("copy");done();}}catch(err){{}}
+    }}
   }});
+
+  // Esc closes whichever lightbox is open
   document.addEventListener("keydown",function(e){{
-    if(e.key==="Escape"&&lb.classList.contains("open"))closeLB();
+    if(e.key==="Escape"){{
+      if(lb.classList.contains("open"))closeLB();
+      if(slb.classList.contains("open"))closeScript();
+    }}
   }});
 }})();
 </script>
