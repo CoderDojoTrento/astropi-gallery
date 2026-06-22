@@ -116,6 +116,8 @@ def generate_gallery(entries, output_path, title=None, subtitle=None,
         dur_str = f"{duration:.0f}s" if duration else ""
         script_name = e.get("script", "")
 
+        by_html = f' <span class="card-sub">by {participant}</span>' if participant else ""
+
         # Read the script source for the preview lightbox
         script_src = ""
         if script_name:
@@ -148,8 +150,7 @@ def generate_gallery(entries, output_path, title=None, subtitle=None,
           <span class="dur">{dur_str}</span>
         </div>
         <div class="card-body">
-          <h3 class="card-title">{project}</h3>
-          <p class="card-sub">{participant}</p>
+          <h3 class="card-title">{project}{by_html}</h3>
           <div class="card-foot">
             {badge}
             <div class="card-actions">
@@ -451,7 +452,7 @@ body{{
   font-family:var(--font-display);font-weight:700;
   font-size:1.1rem;line-height:1.3;color:var(--text);
 }}
-.card-sub{{color:var(--text2);font-size:.85rem;margin-top:3px}}
+.card-sub{{color:var(--text2);font-size:.85rem;font-weight:400}}
 
 .badge{{
   display:inline-block;margin-top:8px;font-size:.75rem;font-weight:700;
