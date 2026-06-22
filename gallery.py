@@ -117,7 +117,16 @@ def generate_gallery(entries, output_path, title=None, subtitle=None,
         video_name = e.get("video", "")
         script_name = e.get("script", "")
 
-        # Read the script source so it can be shown in the preview lightbox
+        # Build a data: URI for the video so the download works on any
+        # protocol (file:// included) via the native download attribute.
+        video_href = video
+        video_file = os.path.join(output_dir, video_name) if video_name else ""
+        if video_file and os.path.exists(video_file):
+            with open(video_file, "rb") as vf:
+                vid_b64 = base64.b64encode(vf.read()).decode("ascii")
+            video_href = f"data:video/mp4;base64,{vid_b64}"
+
+        # Read the script source for the preview lightbox + download URI
         script_src = ""
         if script_name:
             script_path = os.path.join(output_dir, script_name)
@@ -133,16 +142,17 @@ def generate_gallery(entries, output_path, title=None, subtitle=None,
                 f'<pre class="script-store" id="script-{i}" hidden>'
                 f'{html.escape(script_src)}</pre>'
             )
+            script_b64 = base64.b64encode(script_src.encode("utf-8")).decode("ascii")
+            script_href = f"data:text/x-python;charset=utf-8;base64,{script_b64}"
             script_buttons = (
-                f'<a href="{html.escape(script_name)}" download="{html.escape(script_name)}" '
-                f'data-action="dl-script" title="Download script">&#11015; Script</a>'
+                f'<a href="{script_href}" download="{html.escape(script_name)}" '
+                f'data-action="dl" title="Download script">&#11015; Script</a>'
                 f'<a href="{html.escape(script_name)}" data-action="preview-script" '
                 f'data-index="{i}" title="Preview script">&#128196; Preview</a>'
             )
 
         cards_html.append(f'''
       <article class="card" data-video="{video}" data-name="{html.escape(project)}"
-               data-video-name="{html.escape(video_name)}" data-script="{html.escape(script_name)}"
                data-index="{i}" tabindex="0">
         <div class="card-img">
           <img src="{preview_src}" alt="{html.escape(project)}" loading="lazy" width="378" height="378">
@@ -155,7 +165,7 @@ def generate_gallery(entries, output_path, title=None, subtitle=None,
           <div class="card-foot">
             {badge}
             <div class="card-actions">
-              <a href="{video}" download="{html.escape(video_name)}" data-action="dl-video" title="Download video">&#11015; Video</a>
+              <a href="{video_href}" download="{html.escape(video_name)}" data-action="dl" title="Download video">&#11015; Video</a>
               {script_buttons}
             </div>
           </div>
@@ -463,15 +473,16 @@ body{{
 .badge.fail{{background:rgba(255,45,120,.12);color:var(--accent2);border:1px solid rgba(255,45,120,.2)}}
 
 .card-foot{{
-  display:flex;align-items:center;gap:10px;margin-top:10px;flex-wrap:wrap;
+  display:flex;align-items:center;gap:8px;margin-top:12px;flex-wrap:wrap;
 }}
+.card-foot .badge{{margin-top:0}}
 .card-actions{{
-  display:flex;gap:8px;margin-left:auto;flex-wrap:wrap;
+  display:flex;gap:6px;margin-left:auto;flex-wrap:wrap;
 }}
 .card-actions a{{
-  display:inline-flex;align-items:center;gap:5px;cursor:pointer;
-  font-size:.78rem;font-weight:600;color:var(--accent);
-  text-decoration:none;padding:4px 10px;
+  display:inline-flex;align-items:center;gap:4px;cursor:pointer;
+  font-size:.72rem;font-weight:600;color:var(--accent);
+  text-decoration:none;padding:3px 8px;white-space:nowrap;
   border:1px solid var(--border);border-radius:8px;
   transition:border-color .15s,background .15s;
 }}
@@ -646,31 +657,17 @@ body{{
 
   var grid=document.querySelector(".grid");
 
-  // Force a real download via blob (avoids in-browser preview of mp4/py)
-  function forceDownload(url,filename){{
-    fetch(url).then(function(r){{return r.blob();}}).then(function(blob){{
-      var u=URL.createObjectURL(blob),a=document.createElement("a");
-      a.href=u;a.download=filename||"";
-      document.body.appendChild(a);a.click();a.remove();
-      setTimeout(function(){{URL.revokeObjectURL(u);}},1000);
-    }}).catch(function(){{
-      // Fallback: plain download attribute (may preview if same-origin fails)
-      var a=document.createElement("a");
-      a.href=url;a.download=filename||"";
-      document.body.appendChild(a);a.click();a.remove();
-    }});
-  }}
-
   // Delegate clicks: action buttons take priority, else open the video
   grid.addEventListener("click",function(e){{
     var action=e.target.closest("[data-action]");
     if(action){{
-      e.preventDefault();
+      // Don't let the card's video lightbox open underneath
       e.stopPropagation();
-      var card=action.closest(".card"),act=action.dataset.action;
-      if(act==="dl-video")      forceDownload(card.dataset.video,card.dataset.videoName);
-      else if(act==="dl-script")forceDownload(card.dataset.script,card.dataset.script);
-      else if(act==="preview-script")openScript(action.dataset.index||card.dataset.index,card.dataset.script);
+      if(action.dataset.action==="preview-script"){{
+        e.preventDefault();
+        openScript(action.dataset.index,action.getAttribute("href"));
+      }}
+      // data-action="dl": let the native data: URI download proceed
       return;
     }}
     var card=e.target.closest(".card");
