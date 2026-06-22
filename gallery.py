@@ -114,18 +114,36 @@ def generate_gallery(entries, output_path, title=None, subtitle=None,
             badge = '<span class="badge fail" title="Does not meet all criteria">&#x26A0; Needs Fix</span>'
 
         dur_str = f"{duration:.0f}s" if duration else ""
-        script_file = html.escape(e.get("script", ""))
+        video_name = e.get("video", "")
+        script_name = e.get("script", "")
 
-        script_link = ""
-        if script_file:
-            script_link = (
-                f'<a href="{script_file}" target="_blank" '
-                f'rel="noopener" title="View Python source">'
-                f'&#128196; Script</a>'
+        # Read the script source so it can be shown in the preview lightbox
+        script_src = ""
+        if script_name:
+            script_path = os.path.join(output_dir, script_name)
+            if os.path.exists(script_path):
+                with open(script_path, encoding="utf-8") as sf:
+                    script_src = sf.read()
+
+        # Hidden store for the script source (read by the preview lightbox)
+        script_store = ""
+        script_buttons = ""
+        if script_name:
+            script_store = (
+                f'<pre class="script-store" id="script-{i}" hidden>'
+                f'{html.escape(script_src)}</pre>'
+            )
+            script_buttons = (
+                f'<a href="{html.escape(script_name)}" download="{html.escape(script_name)}" '
+                f'data-action="dl-script" title="Download script">&#11015; Script</a>'
+                f'<a href="{html.escape(script_name)}" data-action="preview-script" '
+                f'data-index="{i}" title="Preview script">&#128196; Preview</a>'
             )
 
         cards_html.append(f'''
-      <article class="card" data-video="{video}" data-name="{html.escape(project)}" tabindex="0">
+      <article class="card" data-video="{video}" data-name="{html.escape(project)}"
+               data-video-name="{html.escape(video_name)}" data-script="{html.escape(script_name)}"
+               data-index="{i}" tabindex="0">
         <div class="card-img">
           <img src="{preview_src}" alt="{html.escape(project)}" loading="lazy" width="378" height="378">
           <div class="play-icon" aria-hidden="true">&#9654;</div>
@@ -134,12 +152,15 @@ def generate_gallery(entries, output_path, title=None, subtitle=None,
         <div class="card-body">
           <h3 class="card-title">{project}</h3>
           <p class="card-sub">{participant}</p>
-          {badge}
-          <div class="card-actions">
-            <a href="{video}" download title="Download video">&#11015; Video</a>
-            {script_link}
+          <div class="card-foot">
+            {badge}
+            <div class="card-actions">
+              <a href="{video}" download="{html.escape(video_name)}" data-action="dl-video" title="Download video">&#11015; Video</a>
+              {script_buttons}
+            </div>
           </div>
         </div>
+        {script_store}
       </article>''')
 
     # ── Build logo tags ──
@@ -441,11 +462,14 @@ body{{
 .badge.pass{{background:rgba(0,229,120,.15);color:#00e578;border:1px solid rgba(0,229,120,.25)}}
 .badge.fail{{background:rgba(255,45,120,.12);color:var(--accent2);border:1px solid rgba(255,45,120,.2)}}
 
+.card-foot{{
+  display:flex;align-items:center;gap:10px;margin-top:10px;flex-wrap:wrap;
+}}
 .card-actions{{
-  display:flex;gap:10px;margin-top:10px;flex-wrap:wrap;
+  display:flex;gap:8px;margin-left:auto;flex-wrap:wrap;
 }}
 .card-actions a{{
-  display:inline-flex;align-items:center;gap:5px;
+  display:inline-flex;align-items:center;gap:5px;cursor:pointer;
   font-size:.78rem;font-weight:600;color:var(--accent);
   text-decoration:none;padding:4px 10px;
   border:1px solid var(--border);border-radius:8px;
@@ -454,6 +478,32 @@ body{{
 .card-actions a:hover{{
   border-color:var(--accent);background:rgba(0,229,255,.08);
 }}
+
+/* ── script preview ── */
+.script-box{{width:min(94vw,860px)}}
+.script-head{{
+  display:flex;align-items:center;justify-content:space-between;
+  gap:12px;padding:16px 20px 10px;
+}}
+.script-view{{
+  margin:0 20px 20px;max-height:64vh;overflow:auto;
+  background:#0a0c1a;border:1px solid var(--border);border-radius:10px;
+  padding:16px;
+}}
+.script-view code{{
+  display:block;white-space:pre;user-select:text;
+  font-family:'SF Mono',ui-monospace,'Cascadia Code',Consolas,monospace;
+  font-size:.85rem;line-height:1.55;color:var(--text);tab-size:4;
+}}
+.copy-btn{{
+  font-family:var(--font-display);font-weight:700;font-size:.8rem;
+  color:var(--accent);background:rgba(0,229,255,.08);
+  border:1px solid var(--accent);border-radius:8px;
+  padding:6px 16px;cursor:pointer;white-space:nowrap;
+  transition:background .15s;
+}}
+.copy-btn:hover{{background:rgba(0,229,255,.18)}}
+.copy-btn.copied{{color:#00e578;border-color:#00e578;background:rgba(0,229,120,.12)}}
 
 /* ── lightbox ── */
 .lightbox{{
@@ -569,6 +619,18 @@ body{{
   </div>
 </div>
 
+<!-- Script preview lightbox -->
+<div class="lightbox" id="slb" role="dialog" aria-modal="true" aria-label="Script source">
+  <div class="lightbox-inner script-box">
+    <button class="lightbox-close" id="slb-close" aria-label="Close">&times;</button>
+    <div class="script-head">
+      <span class="lightbox-title" id="slb-title" style="padding:0"></span>
+      <button class="copy-btn" id="slb-copy" type="button">Copy</button>
+    </div>
+    <pre class="script-view"><code id="slb-code"></code></pre>
+  </div>
+</div>
+
 <script>
 (function(){{
   var lb=document.getElementById("lb"),
@@ -576,19 +638,52 @@ body{{
       lbTitle=document.getElementById("lb-title"),
       closeBtn=document.getElementById("lb-close");
 
-  // Open lightbox on card click/enter
-  document.querySelector(".grid").addEventListener("click",function(e){{
+  var slb=document.getElementById("slb"),
+      slbCode=document.getElementById("slb-code"),
+      slbTitle=document.getElementById("slb-title"),
+      slbClose=document.getElementById("slb-close"),
+      slbCopy=document.getElementById("slb-copy");
+
+  var grid=document.querySelector(".grid");
+
+  // Force a real download via blob (avoids in-browser preview of mp4/py)
+  function forceDownload(url,filename){{
+    fetch(url).then(function(r){{return r.blob();}}).then(function(blob){{
+      var u=URL.createObjectURL(blob),a=document.createElement("a");
+      a.href=u;a.download=filename||"";
+      document.body.appendChild(a);a.click();a.remove();
+      setTimeout(function(){{URL.revokeObjectURL(u);}},1000);
+    }}).catch(function(){{
+      // Fallback: plain download attribute (may preview if same-origin fails)
+      var a=document.createElement("a");
+      a.href=url;a.download=filename||"";
+      document.body.appendChild(a);a.click();a.remove();
+    }});
+  }}
+
+  // Delegate clicks: action buttons take priority, else open the video
+  grid.addEventListener("click",function(e){{
+    var action=e.target.closest("[data-action]");
+    if(action){{
+      e.preventDefault();
+      e.stopPropagation();
+      var card=action.closest(".card"),act=action.dataset.action;
+      if(act==="dl-video")      forceDownload(card.dataset.video,card.dataset.videoName);
+      else if(act==="dl-script")forceDownload(card.dataset.script,card.dataset.script);
+      else if(act==="preview-script")openScript(action.dataset.index||card.dataset.index,card.dataset.script);
+      return;
+    }}
     var card=e.target.closest(".card");
-    if(!card)return;
-    openLB(card.dataset.video,card.dataset.name);
+    if(card)openLB(card.dataset.video,card.dataset.name);
   }});
-  document.querySelector(".grid").addEventListener("keydown",function(e){{
-    if(e.key==="Enter"){{
+  grid.addEventListener("keydown",function(e){{
+    if(e.key==="Enter"&&!e.target.closest("[data-action]")){{
       var card=e.target.closest(".card");
       if(card)openLB(card.dataset.video,card.dataset.name);
     }}
   }});
 
+  // ── Video lightbox ──
   function openLB(src,name){{
     vid.src=src;
     lbTitle.textContent=name;
@@ -597,7 +692,6 @@ body{{
     vid.play().catch(function(){{}});
     closeBtn.focus();
   }}
-
   function closeLB(){{
     lb.classList.remove("open");
     vid.pause();
@@ -605,13 +699,45 @@ body{{
     vid.load();
     document.body.style.overflow="";
   }}
-
   closeBtn.addEventListener("click",closeLB);
-  lb.addEventListener("click",function(e){{
-    if(e.target===lb)closeLB();
+  lb.addEventListener("click",function(e){{if(e.target===lb)closeLB();}});
+
+  // ── Script preview lightbox ──
+  function openScript(index,filename){{
+    var store=document.getElementById("script-"+index);
+    slbCode.textContent=store?store.textContent:"(source unavailable)";
+    slbTitle.textContent=filename||"Script";
+    slbCopy.textContent="Copy";
+    slbCopy.classList.remove("copied");
+    slb.classList.add("open");
+    document.body.style.overflow="hidden";
+    slbClose.focus();
+  }}
+  function closeScript(){{
+    slb.classList.remove("open");
+    document.body.style.overflow="";
+  }}
+  slbClose.addEventListener("click",closeScript);
+  slb.addEventListener("click",function(e){{if(e.target===slb)closeScript();}});
+  slbCopy.addEventListener("click",function(){{
+    var text=slbCode.textContent;
+    function done(){{slbCopy.textContent="Copied!";slbCopy.classList.add("copied");}}
+    if(navigator.clipboard&&navigator.clipboard.writeText){{
+      navigator.clipboard.writeText(text).then(done).catch(selectFallback);
+    }}else{{selectFallback();}}
+    function selectFallback(){{
+      var r=document.createRange();r.selectNodeContents(slbCode);
+      var sel=window.getSelection();sel.removeAllRanges();sel.addRange(r);
+      try{{document.execCommand("copy");done();}}catch(err){{}}
+    }}
   }});
+
+  // Esc closes whichever lightbox is open
   document.addEventListener("keydown",function(e){{
-    if(e.key==="Escape"&&lb.classList.contains("open"))closeLB();
+    if(e.key==="Escape"){{
+      if(lb.classList.contains("open"))closeLB();
+      if(slb.classList.contains("open"))closeScript();
+    }}
   }});
 }})();
 </script>
