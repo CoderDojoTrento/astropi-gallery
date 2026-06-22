@@ -114,6 +114,15 @@ def generate_gallery(entries, output_path, title=None, subtitle=None,
             badge = '<span class="badge fail" title="Does not meet all criteria">&#x26A0; Needs Fix</span>'
 
         dur_str = f"{duration:.0f}s" if duration else ""
+        script_file = html.escape(e.get("script", ""))
+
+        script_link = ""
+        if script_file:
+            script_link = (
+                f'<a href="{script_file}" target="_blank" '
+                f'rel="noopener" title="View Python source">'
+                f'&#128196; Script</a>'
+            )
 
         cards_html.append(f'''
       <article class="card" data-video="{video}" data-name="{html.escape(project)}" tabindex="0">
@@ -126,6 +135,10 @@ def generate_gallery(entries, output_path, title=None, subtitle=None,
           <h3 class="card-title">{project}</h3>
           <p class="card-sub">{participant}</p>
           {badge}
+          <div class="card-actions">
+            <a href="{video}" download title="Download video">&#11015; Video</a>
+            {script_link}
+          </div>
         </div>
       </article>''')
 
@@ -428,6 +441,20 @@ body{{
 .badge.pass{{background:rgba(0,229,120,.15);color:#00e578;border:1px solid rgba(0,229,120,.25)}}
 .badge.fail{{background:rgba(255,45,120,.12);color:var(--accent2);border:1px solid rgba(255,45,120,.2)}}
 
+.card-actions{{
+  display:flex;gap:10px;margin-top:10px;flex-wrap:wrap;
+}}
+.card-actions a{{
+  display:inline-flex;align-items:center;gap:5px;
+  font-size:.78rem;font-weight:600;color:var(--accent);
+  text-decoration:none;padding:4px 10px;
+  border:1px solid var(--border);border-radius:8px;
+  transition:border-color .15s,background .15s;
+}}
+.card-actions a:hover{{
+  border-color:var(--accent);background:rgba(0,229,255,.08);
+}}
+
 /* ── lightbox ── */
 .lightbox{{
   position:fixed;inset:0;z-index:100;
@@ -528,6 +555,7 @@ body{{
       project run with the
       <a href="https://www.raspberrypi.org" target="_blank" rel="noopener">Raspberry Pi Foundation</a>
     </p>
+    <p>Try the official Astro Pi simulator: <a href="https://rpf.io/mzcode" target="_blank" rel="noopener"><strong>rpf.io/mzcode</strong></a></p>
     <p>Videos recorded with <a href="https://github.com/CoderDojoTrento/astropi-gallery" target="_blank" rel="noopener"><strong>astropi-gallery</strong></a></p>
   </footer>
 </div>

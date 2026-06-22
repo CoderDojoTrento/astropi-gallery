@@ -21,6 +21,7 @@ Options:
 import argparse
 import os
 import pickle
+import shutil
 import sys
 import tempfile
 import time
@@ -340,6 +341,10 @@ def main():
 
             project = parts[-1].strip().title()
 
+            # Copy script to output dir (anonymized name if needed)
+            script_out = f"{out_name}.py"
+            shutil.copy2(str(script_path), str(output_dir / script_out))
+
             gallery_entries.append({
                 "name": project,
                 "participant": participant,
@@ -347,6 +352,7 @@ def main():
                 "video": f"{out_name}.mp4",
                 "preview": f"{out_name}.png",
                 "preview_path": str(output_dir / f"{out_name}.png"),
+                "script": script_out,
                 "duration": ve,
                 "criteria_pass": criteria_pass,
             })
