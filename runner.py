@@ -245,10 +245,25 @@ def main():
 
     results_summary = []
     gallery_entries = []
+    used_out_names = set()
 
     for i, script_path in enumerate(scripts, 1):
         name = script_path.stem
         print(f"[{i}/{len(scripts)}] {script_path.name} ", end="", flush=True)
+
+        # Output artifact name. When anonymizing, strip the participant prefix
+        # (text before the first "-") so the name doesn't leak via filenames.
+        if args.anonymize and "-" in name:
+            out_name = name.split("-", 1)[1]
+        else:
+            out_name = name
+        # Guard against collisions when anonymization collapses distinct names
+        base_out = out_name
+        dedup = 2
+        while out_name in used_out_names:
+            out_name = f"{base_out}-{dedup}"
+            dedup += 1
+        used_out_names.add(out_name)
 
         t0 = time.monotonic()
         result = run_script_isolated(
@@ -269,7 +284,7 @@ def main():
         elif n_frames == 0:
             print(f"⚠ no frames recorded")
         else:
-            video_path = str(output_dir / f"{name}.mp4")
+            video_path = str(output_dir / f"{out_name}.mp4")
             video_ok = frames_to_video(result["frames"], video_path, fps=args.fps)
 
             if video_ok:
@@ -279,7 +294,7 @@ def main():
                 print(f"✗ video encoding failed")
 
             if args.preview and n_frames > 0:
-                preview_path = str(output_dir / f"{name}.png")
+                preview_path = str(output_dir / f"{out_name}.png")
                 best_frame = result["frames"][0][1]
                 for fi in range(n_frames):
                     t_now = result["frames"][fi][0]
@@ -329,9 +344,9 @@ def main():
                 "name": project,
                 "participant": participant,
                 "project": project,
-                "video": f"{name}.mp4",
-                "preview": f"{name}.png",
-                "preview_path": str(output_dir / f"{name}.png"),
+                "video": f"{out_name}.mp4",
+                "preview": f"{out_name}.png",
+                "preview_path": str(output_dir / f"{out_name}.png"),
                 "duration": ve,
                 "criteria_pass": criteria_pass,
             })
