@@ -178,6 +178,8 @@ def main():
                         help="Also save a PNG of the first significant frame")
     parser.add_argument("--check", action="store_true",
                         help="Report Mission Zero criteria pass/fail")
+    parser.add_argument("--anonymize", action="store_true",
+                        help="Don't show participant name")
     parser.add_argument("--gallery", action="store_true",
                         help="Generate an HTML gallery page (implies --preview --check)")
     parser.add_argument("--gallery-title", default="Mission Zero Gallery",
@@ -185,16 +187,29 @@ def main():
     parser.add_argument("--gallery-subtitle",
                         default="Our code ran on the International Space Station (ISS)!",
                         help="Gallery page subtitle")
-    parser.add_argument("--gallery-description", default=None,
+    parser.add_argument("--gallery-description", default="",
                         help="Gallery page description paragraph")
     parser.add_argument("--year", default=None,
                         help="Challenge year/season (e.g. '2025/26')")
-    parser.add_argument("--instructor", default=None,
-                        help="Promoter / instructor / school / club name for the gallery")
-    parser.add_argument("--instructor-logo", default=None,
+    parser.add_argument("--promoter1", default="",
+                        help="Promoter / school / club name for the gallery")
+    parser.add_argument("--promoter1-logo", default="",
                         help="Path to promoter logo image (filename must start with promoter-)")
-    parser.add_argument("--instructor-link", default=None,
+    parser.add_argument("--promoter1-link", default="",
                         help="URL for the promoter logo (opens in new tab)")
+    parser.add_argument("--promoter2", default="",
+                        help="Promoter / school / club name for the gallery")
+    parser.add_argument("--promoter2-logo", default="",
+                        help="Path to promoter logo image (filename must start with promoter-)")
+    parser.add_argument("--promoter2-link", default="",
+                        help="URL for the promoter logo (opens in new tab)")
+    parser.add_argument("--promoter3", default="",
+                        help="Promoter / school / club name for the gallery")
+    parser.add_argument("--promoter3-logo", default="",
+                        help="Path to promoter logo image (filename must start with promoter-)")
+    parser.add_argument("--promoter3-link", default="",
+                        help="URL for the promoter logo (opens in new tab)")
+
     parser.add_argument("--logos-dir", default=None,
                         help="Directory containing logo images (default: img/ next to this script)")
     parser.add_argument("-v", "--verbose", action="store_true",
@@ -303,7 +318,11 @@ def main():
             # Parse filename: "participant-project.py" → participant, project
             # If only one part, use it as both
             parts = name.replace("_", " ").split("-", 1)
-            participant = parts[0].strip().title() if len(parts) > 1 else ""
+            if args.anonymize:
+                participant = ""
+            else:
+                participant = parts[0].strip().title() if len(parts) > 1 else ""
+
             project = parts[-1].strip().title()
 
             gallery_entries.append({
@@ -334,7 +353,9 @@ def main():
             "raspberry": None,
             "astropi": None,
             "mission_zero": None,
-            "promoter": None,
+            "promoter1": None,
+            "promoter2": None,
+            "promoter3": None,
         }
         if logos_dir.is_dir():
             for f in logos_dir.iterdir():
@@ -351,11 +372,17 @@ def main():
                     # Prefer the version with writing (the .png) for the title
                     if "no-writing" not in name_lower or logo_files["mission_zero"] is None:
                         logo_files["mission_zero"] = str(f)
-                elif name_lower.startswith("promoter-") or name_lower.startswith("promoter_"):
-                    logo_files["promoter"] = str(f)
+                elif name_lower.startswith("promoter1-") or name_lower.startswith("promoter1_"):
+                    logo_files["promoter1"] = str(f)
+                elif name_lower.startswith("promoter2-") or name_lower.startswith("promoter2_"):
+                    logo_files["promoter2"] = str(f)
+                elif name_lower.startswith("promoter3-") or name_lower.startswith("promoter3_"):
+                    logo_files["promoter3"] = str(f)
 
         # CLI flags override auto-detected logos
-        instructor_logo = args.instructor_logo or logo_files["promoter"]
+        promoter1_logo = args.promoter1_logo or logo_files["promoter1"]
+        promoter2_logo = args.promoter2_logo or logo_files["promoter2"]
+        promoter3_logo = args.promoter3_logo or logo_files["promoter3"]
 
         gallery_path = str(output_dir / "index.html")
         generate_gallery(
@@ -365,9 +392,9 @@ def main():
             subtitle=args.gallery_subtitle,
             description=args.gallery_description,
             year=args.year,
-            instructor_name=args.instructor,
-            instructor_logo_path=instructor_logo,
-            instructor_link=args.instructor_link,
+            promoter_names=(args.promoter1, args.promoter2, args.promoter3),
+            promoter_logo_paths=(promoter1_logo,promoter2_logo,promoter3_logo),
+            promoter_links=(args.promoter1_link,args.promoter2_link,args.promoter3_link),
             esa_logo_path=logo_files["esa"],
             raspberry_logo_path=logo_files["raspberry"],
             astropi_logo_path=logo_files["astropi"],

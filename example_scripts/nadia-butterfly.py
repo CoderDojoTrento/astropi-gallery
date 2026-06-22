@@ -1,12 +1,14 @@
 from sense_hat import SenseHat
 sense = SenseHat()
 sense.set_rotation(270)
+
 from sense_hat import SenseHat
 from time import sleep
 sense = SenseHat()
 sense.set_rotation(270)
 sense.color.gain=60
 sense.color.integration_cycles=64
+
 vc=(0,227,170)
 v=(255,0,255)
 n=(0,0,0)

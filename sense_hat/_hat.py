@@ -12,15 +12,17 @@ from ._font import get_char_pixels
 
 
 class _ColourSensor:
-    """Mock colour/luminosity sensor returning configurable values."""
-
+    """Mock colour/luminosity sensor returning configurable values.
+       Defaults to default astropi pink
+    """
+    
     def __init__(self):
         self.gain = 60
         self.integration_cycles = 64
-        self._r = 0
-        self._g = 0
-        self._b = 0
-        self._c = 0
+        self._r = 255   
+        self._g = 0     
+        self._b = 164   
+        self._c = 100   # clear:The amount of incident light (brightness), scaled to 0-256  
 
     @property
     def integration_time(self):

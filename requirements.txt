@@ -1,1 +1,15 @@
-Pillow == 12.1.1
+# Python dependencies
+Pillow==12.1.1
+pytesseract==0.3.13
+ 
+# System dependencies (install via package manager, not pip):
+#   tesseract-ocr        -- OCR engine used by pytesseract
+#   poppler-utils        -- provides pdftoppm (tested with v24.02.0)
+#
+# On Debian/Ubuntu:
+#   sudo apt install tesseract-ocr poppler-utils
+#
+# On macOS (Homebrew):
+#   brew install tesseract poppler
+ 
+

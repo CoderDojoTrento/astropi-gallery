@@ -53,8 +53,8 @@ def _logo_tag(path, alt, output_dir, css_class="logo-img"):
 
 def generate_gallery(entries, output_path, title=None, subtitle=None,
                      description=None, year=None,
-                     instructor_name=None, instructor_logo_path=None,
-                     instructor_link=None,
+                     promoter_names=(), promoter_logo_paths=(),
+                     promoter_links=(),
                      esa_logo_path=None, raspberry_logo_path=None,
                      astropi_logo_path=None, mission_zero_logo_path=None):
     """
@@ -74,9 +74,9 @@ def generate_gallery(entries, output_path, title=None, subtitle=None,
         subtitle: subtitle text (may contain HTML link tags)
         description: paragraph below the subtitle (may contain HTML link tags)
         year: challenge year/season to display (e.g. "2025/26")
-        instructor_name: name of the local promoter/instructor/club
-        instructor_logo_path: path to promoter logo image (must start with promoter-)
-        instructor_link: URL for the promoter logo (opens in new tab)
+        promoter_names: name of the local promoter/instructor/club
+        promoter_logo_paths: path to promoter logo image (must start with promoter-)
+        promoter_links: URL for the promoter logo (opens in new tab)
         esa_logo_path: path to ESA logo (white on black)
         raspberry_logo_path: path to Raspberry Pi Foundation logo (white on black)
         astropi_logo_path: path to Astro Pi logo
@@ -89,8 +89,8 @@ def generate_gallery(entries, output_path, title=None, subtitle=None,
     if description is None:
         description = ("Each animation was coded in Python and displayed "
                        "on the Astro\u00a0Pi LED\u00a0matrix aboard the ISS.")
-    if instructor_name is None:
-        instructor_name = "Your School / Club"
+    if not promoter_names:
+        promoter_names = ["Your School / Club", "", ""]
 
     output_dir = os.path.dirname(os.path.abspath(output_path))
 
@@ -135,24 +135,28 @@ def generate_gallery(entries, output_path, title=None, subtitle=None,
     esa_tag = _logo_tag(esa_logo_path, "European Space Agency", output_dir)
     raspberry_tag = _logo_tag(raspberry_logo_path, "Raspberry Pi Foundation", output_dir)
 
-    if instructor_logo_path and os.path.exists(instructor_logo_path):
-        promoter_inner = (
-            f'<img src="{_inline_image_src(instructor_logo_path, output_dir)}" '
-            f'alt="{html.escape(instructor_name)}" class="logo-img logo-promoter">'
-        )
-    else:
-        promoter_inner = (
-            f'<div class="logo-placeholder">{html.escape(instructor_name)}</div>'
-        )
+    promoter_inners = ['','','']
+    promoter_tags = ['','','']
 
-    if instructor_link:
-        promoter_tag = (
-            f'<a href="{html.escape(instructor_link)}" target="_blank" '
-            f'rel="noopener" aria-label="{html.escape(instructor_name)}">'
-            f'{promoter_inner}</a>'
-        )
-    else:
-        promoter_tag = promoter_inner
+    for i in range(3):
+      if promoter_logo_paths[i] and os.path.exists(promoter_logo_paths[i]):
+          promoter_inners[i] = (
+              f'<img src="{_inline_image_src(promoter_logo_paths[i], output_dir)}" '
+              f'alt="{html.escape(promoter_names[i])}" class="logo-img logo-promoter">'
+          )
+      else:
+          promoter_inners[i] = (
+              f'<div class="logo-placeholder">{html.escape(promoter_names[i])}</div>'
+          )
+
+      if promoter_links[i]:
+          promoter_tags[i] = (
+              f'<a href="{html.escape(promoter_links[i])}" target="_blank" '
+              f'rel="noopener" aria-label="{html.escape(promoter_names[i])}">'
+              f'{promoter_inners[i]}</a>'
+          )
+      else:
+          promoter_tags[i] = promoter_inners[i]
 
     # Wrap org logos in links when present
     def _wrap_link(tag, href, label):
@@ -187,7 +191,7 @@ def generate_gallery(entries, output_path, title=None, subtitle=None,
   --accent3:#b54cff;
   --gold:#ffd54f;
   --text:#e2e5ff;
-  --text2:#8a8fc4;
+  --text2:#d4cdff;
   --radius:14px;
   --font-display:'Outfit',system-ui,sans-serif;
   --font-body:'DM Sans',system-ui,sans-serif;
@@ -343,11 +347,11 @@ body{{
 }}
 .hero .tagline{{
   font-family:var(--font-display);font-weight:600;
-  font-size:clamp(1rem,2.5vw,1.35rem);
+  font-size:clamp(1rem,2.5vw,1.85rem);
   color:var(--gold);margin-top:14px;
   text-shadow:0 0 30px rgba(255,213,79,.25);
 }}
-.hero .sub{{color:var(--text2);margin-top:8px;font-size:.95rem;max-width:600px;margin-inline:auto}}
+.hero .sub{{color:var(--text2);margin-top:8px;font-size:1.25rem;max-width:600px;margin-inline:auto}}
 .hero a{{color:var(--accent);text-decoration:none}}
 .hero a:hover{{text-decoration:underline}}
 .year-badge{{
@@ -489,7 +493,9 @@ body{{
       {raspberry_link}
     </div>
     <div class="logos-right">
-      {promoter_tag}
+      {promoter_tags[0]}
+      {promoter_tags[1]}
+      {promoter_tags[2]}
     </div>
   </nav>
 
@@ -500,9 +506,12 @@ body{{
       {mzero_tag}
     </div>
     <h1 class="sr-only">{html.escape(title)}</h1>
+    <br>
     <p class="tagline">{subtitle}</p>
+    <br>
     <p class="sub">{description}</p>
     {year_html}
+    <br>
   </header>
 
   <div class="divider"></div>
